@@ -1,0 +1,64 @@
+name: CI-PRO
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'app/.dockerignore'
+  
+jobs:
+  integration-tests:
+    name: Run integration tests and publish release candidate Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+      - name: Build the Docker image
+        run: make build
+      - name: Run integration tests
+        run: make test-integration      
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }} 
+      - name: Publish the release candidate Docker image
+        run: make publish-image-rc     
+      #- name: Get latest Docker image version
+      #  id: get_version
+      #  run: |
+      #    version=$(curl -s 'https://registry.hub.docker.com/v2/repositories/your_docker_username/your_image_name/tags/' | jq -r '.results[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+      #    echo "::set-output name=version::$version"  
+      #- name: Tag release with Docker version
+      #  if: success()
+      #  run: |
+      #    version=$(echo "${{ steps.get_version.outputs.version }}")
+      #    if [ -n "$version" ]; then
+      #      git config --local user.email "action@github.com"
+      #      git config --local user.name "GitHub Action"
+      #      git tag -a "v$version" -m "Version $version"
+      #      git push --tags
+      #    else
+      #      echo "Failed to retrieve version from Docker Hub."
+      #      exit 1
+      #    fi          
+
+  publish-image:
+    name: Tag and publish the latest Docker image
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}       
+      - name: Publish the latest Docker image
+        run: make publish-image-latest    
