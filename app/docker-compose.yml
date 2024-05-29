@@ -1,8 +1,8 @@
 version: '3.9'
 
 services:
-  app:
-    container_name: ${CONTAINER_NAME}
+  user-service:
+    container_name: ${IMAGE_NAME}
     image: ${IMAGE_NAME}:${IMAGE_VERSION}
     build:
       context: .
@@ -12,12 +12,56 @@ services:
         - APP_HOST=${APP_HOST}
         - APP_MODULE=${APP_MODULE}
     volumes:
-      - .:/src
+      - ./src:/app/src
     ports:
-      - ${APP_PORT}:${CONTAINER_PORT}
+      - ${APP_PORT}:${APP_PORT}
     env_file:
       - .env
     environment:
       - APP_PORT=${APP_PORT}
       - APP_HOST=${APP_HOST}
       - APP_MODULE=${APP_MODULE}
+      - PYTHONPATH=/app/src
+    depends_on:
+      - db
+    networks:
+      - zuidui
+
+  db:
+    container_name: ${DB_CONTAINER_NAME}
+    image: ${DB_IMAGE_NAME}:${DB_IMAGE_VERSION}
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    depends_on:
+      - pgadmin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - zuidui
+
+  pgadmin:
+    container_name: ${PGADMIN_CONTAINER_NAME}
+    image: ${PGADMIN_IMAGE_NAME}:${PGADMIN_IMAGE_VERSION}
+    ports:
+      - ${PGADMIN_PORT}:80
+    env_file:
+      - .env
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    networks:
+      - zuidui
+
+volumes:
+  postgres_data:
+
+networks:
+  zuidui:
+    driver: bridge

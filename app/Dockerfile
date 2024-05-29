@@ -1,29 +1,36 @@
 # Use an official Python image as the base image
-FROM python:3.12.3-alpine as base
+FROM python:3.12.3-slim as base
 
 # Set the working directory within the container
-WORKDIR /src
+WORKDIR /app
 
-# Install Poetry and update pip in one step
-RUN apk add --no-cache bash && \
-    pip install --no-cache-dir --upgrade pip poetry && \
-    apk del bash
+# Copy necessary files
+COPY requirements.txt .
 
-# Copy the dependency files and install dependencies in one step
-COPY pyproject.toml /src/
-RUN pip install poetry && \
-    poetry install --no-root --no-interaction --no-ansi
+# Install dependencies and clean up
+RUN pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /root/.cache
 
 # Copy the rest of the source code into the container
-COPY . /src
+COPY src /app/src
+COPY tests /app/tests
+COPY .env /app
+
+# Install wait-for-it.sh script
+RUN apt-get update && apt-get install -y curl && \
+    curl -LJO https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh && \
+    chmod +x wait-for-it.sh
 
 # Define environment variables
 ENV APP_PORT=${APP_PORT}
 ENV APP_HOST=${APP_HOST}
 ENV APP_MODULE=${APP_MODULE}
+ENV PYTHONPATH="/app/src"
+ENV DB_HOST=${DB_HOST}
+ENV DB_PORT=${DB_PORT}
 
 # Expose the port the FastAPI app will run on
 EXPOSE ${APP_PORT}
 
 # Use a single CMD instruction
-CMD ["poetry run uvicorn $APP_MODULE --reload --host $APP_HOST --port $APP_PORT"]
+CMD ["sh", "-c", "./wait-for-it.sh ${DB_HOST}:${DB_PORT} --timeout=0 --strict -- uvicorn ${APP_MODULE} --host ${APP_HOST} --port ${APP_PORT}"]
