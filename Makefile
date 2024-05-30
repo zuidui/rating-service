@@ -90,8 +90,9 @@ publish-image-pro:  ## Publish the latest release to the registry.
 	@git push origin $(LATEST_VERSION)	
 	@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
 
+# TODO: Implement tests
 .PHONY: test
-test:  ## Run the unit, integration and acceptance tests.
+test: build ## Run the unit, integration and acceptance tests.
 	@echo "Running the unit, integration and acceptance tests."
 	$(MAKE) test-unit
 	$(MAKE) test-integration
