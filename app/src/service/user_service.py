@@ -1,34 +1,76 @@
-from database.data import get_db, users
+from model.user_model import User
+
+from api.schema import UserType, UserInput
+from repository.user_repository import UserRepository
 
 from utils.logger import logger_config
-from utils.config import get_settings
+from utils.converters import convert_user_to_usertype
 
 log = logger_config(__name__)
-settings = get_settings()
 
 
-async def get_user(id: int):
-    db = get_db()
-    user = await db.execute(users.select().where(users.c.id == id)).fetchone()
-    db.close()
-    return user
+class UserService:
+    @staticmethod
+    async def get_all() -> list[UserType]:
+        log.info("Getting users...")
 
-async def create_user(name: str, email: str, password: str):
-    db = get_db()
-    user = {"name": name, "email": email, "password": password}
-    await db.execute(users.insert().values(user))
-    db.close()
-    return user
+        users = await UserRepository.get_all()
 
-async def update_user(id: int, name: str, email: str, password: str):
-    db = get_db()
-    user = {"name": name, "email": email, "password": password}
-    await db.execute(users.update().values(user).where(users.c.id == id))
-    db.close()
-    return user
+        log.info(f"Users: {users}")
 
-async def delete_user(id: int):
-    db = get_db()
-    await db.execute(users.delete().where(users.c.id == id))
-    db.close()
-    return True
+        return [
+            user_type
+            for user in users
+            if (user_type := convert_user_to_usertype(user)) is not None
+        ]
+
+    @staticmethod
+    async def create(user_data: UserInput) -> UserType:
+        log.info(f"Creating user... {user_data}")
+
+        user = User(
+            name=user_data.name,
+            email=user_data.email,
+            password=user_data.password,
+        )
+
+        await UserRepository.create(user)
+
+        log.info(f"User created: {user}")
+
+        return convert_user_to_usertype(user)
+
+    @staticmethod
+    async def get_by_id(user_id: int) -> UserType:
+        log.info(f"Getting user... {user_id}")
+
+        user = await UserRepository.get_by_id(user_id)
+
+        log.info(f"User: {user}")
+
+        return convert_user_to_usertype(user)
+
+    @staticmethod
+    async def update(user_id: int, user_data: UserInput) -> UserType:
+        log.info(f"Updating user... {user_id}")
+
+        user = User(
+            name=user_data.name,
+            email=user_data.email,
+            password=user_data.password,
+        )
+        await UserRepository.update(user_id, user)
+
+        log.info(f"User updated: {user}")
+
+        return convert_user_to_usertype(user)
+
+    @staticmethod
+    async def delete(user_id: int) -> bool:
+        log.info(f"Deleting user... {user_id}")
+
+        await UserRepository.delete(user_id)
+
+        log.info(f"User deleted: {user_id}")
+
+        return True

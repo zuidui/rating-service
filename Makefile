@@ -63,7 +63,7 @@ run:  ## Start the app in development mode.
 .PHONY: clean
 clean:  ## Clean the app.
 	@echo "Cleaning $(IMAGE_NAME) docker image."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml down
+	docker-compose -f $(SRC_PATH)/docker-compose.yml down --rmi all --volumes --remove-orphans
 
 .PHONY: build
 build:  ## Build the app.

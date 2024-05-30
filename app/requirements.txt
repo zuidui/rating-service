@@ -15,4 +15,3 @@ schema
 strawberry-graphql[fastapi]
 pytest-asyncio
 sqlalchemy
-psycopg2-binary

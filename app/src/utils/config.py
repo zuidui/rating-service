@@ -25,9 +25,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     DOC_URL: str
     DEPENDENCIES: str
-    SQLALCHEMY_SSL: bool
-    SQLALCHEMY_MIN_POOL: int
-    SQLALCHEMY_MAX_POOL: int
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
@@ -36,8 +33,7 @@ class Settings(BaseSettings):
 
     @property
     def SQLALCHEMY_DATABASE_URI(self):
-        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-
+        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     class Config:
         env_file = ".env"
