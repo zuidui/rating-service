@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+ruff
+httpx
+pydantic
+pydantic_settings
+pytest
+pytest-xdist
+asyncpg
+databases
+pylint
+mypy
+doublex
+schema
+strawberry-graphql[fastapi]
+pytest-asyncio
+sqlalchemy
