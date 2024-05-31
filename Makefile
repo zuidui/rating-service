@@ -56,7 +56,7 @@ start-db:  ## Start the database.
 	@./scripts/wait-for-it.sh db:$(DB_PORT) --timeout=5 -- echo "Database is up and running"
 
 .PHONY: run
-run:  ## Start the app in development mode.
+run:  pre-commit ## Start the app in development mode.
 	@echo "Starting $(IMAGE_NAME) in development mode."
 	docker-compose -f $(SRC_PATH)/docker-compose.yml up --build $(IMAGE_NAME)
 

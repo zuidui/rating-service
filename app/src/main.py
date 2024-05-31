@@ -10,13 +10,13 @@ from strawberry.fastapi import GraphQLRouter
 
 from database.sample import insert_sample_data
 
-from utils.logger import logger_config
-from utils.config import get_settings
-
 from database.session import db
 
-from api.query import Query
-from api.mutation import Mutation
+from resolver.query import Query
+from resolver.mutation import Mutation
+
+from utils.logger import logger_config
+from utils.config import get_settings
 
 log = logger_config(__name__)
 settings = get_settings()
@@ -66,6 +66,8 @@ def init_app():
     schema = Schema(query=Query, mutation=Mutation)
     graphql_app = GraphQLRouter(schema, path="/graphql")
     app.include_router(graphql_app, prefix=settings.API_PREFIX)
+
+    log.info("Application created successfully")
 
     return app
 

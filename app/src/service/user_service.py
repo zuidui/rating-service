@@ -1,6 +1,7 @@
 from model.user_model import User
 
-from api.schema import UserType, UserInput
+from resolver.schema import UserType, UserInput
+
 from repository.user_repository import UserRepository
 
 from utils.logger import logger_config
@@ -12,7 +13,7 @@ log = logger_config(__name__)
 class UserService:
     @staticmethod
     async def get_all() -> list[UserType]:
-        log.info("Getting users...")
+        log.info("Getting users")
 
         users = await UserRepository.get_all()
 
@@ -26,7 +27,7 @@ class UserService:
 
     @staticmethod
     async def create(user_data: UserInput) -> UserType:
-        log.info(f"Creating user... {user_data}")
+        log.info(f"Creating user {user_data}")
 
         user = User(
             name=user_data.name,
@@ -42,7 +43,7 @@ class UserService:
 
     @staticmethod
     async def get_by_id(user_id: int) -> UserType:
-        log.info(f"Getting user... {user_id}")
+        log.info(f"Getting user with id {user_id}")
 
         user = await UserRepository.get_by_id(user_id)
 
@@ -52,7 +53,7 @@ class UserService:
 
     @staticmethod
     async def update(user_id: int, user_data: UserInput) -> UserType:
-        log.info(f"Updating user... {user_id}")
+        log.info(f"Updating user with id {user_id} to {user_data}")
 
         user = User(
             name=user_data.name,
@@ -67,7 +68,7 @@ class UserService:
 
     @staticmethod
     async def delete(user_id: int) -> bool:
-        log.info(f"Deleting user... {user_id}")
+        log.info(f"Deleting user with id {user_id}")
 
         await UserRepository.delete(user_id)
 

@@ -2,7 +2,7 @@ import strawberry
 
 from service.user_service import UserService
 
-from .schema import UserType
+from resolver.schema import UserType
 
 
 @strawberry.type

@@ -30,10 +30,16 @@ class Settings(BaseSettings):
     DB_USER: str
     DB_PASSWORD: str
     DB_NAME: str
+    API_GATEWAY_HOST: str
+    API_GATEWAY_PORT: int
 
     @property
     def SQLALCHEMY_DATABASE_URI(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+    @property
+    def API_GATEWAY_URL(self):
+        return f"http://{self.API_GATEWAY_HOST}:{self.API_GATEWAY_PORT}{self.API_PREFIX}/graphql"
 
     class Config:
         env_file = ".env"

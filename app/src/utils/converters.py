@@ -1,7 +1,7 @@
 from typing import Optional
 
 from model.user_model import User
-from api.schema import UserType
+from resolver.schema import UserType
 
 
 def convert_user_to_usertype(user: Optional[User]) -> UserType:
