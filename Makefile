@@ -87,10 +87,11 @@ publish-image-pro:  ## Publish the latest release to the registry.
 	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):$(LATEST_VERSION)
 	@docker push $(REGISTRY_PRO):$(LATEST_VERSION)
 	@docker push $(REGISTRY_PRO):latest
-	@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"
+	@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git tag -d $(LATEST_VERSION); fi
+	@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"	
+	@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git release delete $(LATEST_VERSION); fi
+	@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
 	@git push origin $(LATEST_VERSION)	
-## @if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git release delete $(LATEST_VERSION); fi
-## @gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
 
 # TODO: Implement tests
 .PHONY: test
