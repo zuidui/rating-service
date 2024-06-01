@@ -78,6 +78,7 @@ publish-image-pre: build ## Push the release candidate to the registry.
 	@git tag -a $(IMAGE_VERSION)-rc$(NEXT_RC) -m "Release candidate $(IMAGE_VERSION)-rc$(NEXT_RC)"
 	@git push origin $(IMAGE_VERSION)-rc$(NEXT_RC)
 
+## TODO: Check if the latest version is the same as the image version error when creating release in GitHub
 .PHONY: publish-image-pro
 publish-image-pro:  ## Publish the latest release to the registry.
 	@echo "Publishing the latest image in the registry - $(REGISTRY_PRO):$(LATEST_VERSION)"
@@ -86,10 +87,10 @@ publish-image-pro:  ## Publish the latest release to the registry.
 	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):$(LATEST_VERSION)
 	@docker push $(REGISTRY_PRO):$(LATEST_VERSION)
 	@docker push $(REGISTRY_PRO):latest
-	@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git release delete $(LATEST_VERSION); fi
 	@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"
 	@git push origin $(LATEST_VERSION)	
-	@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
+## @if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git release delete $(LATEST_VERSION); fi
+## @gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
 
 # TODO: Implement tests
 .PHONY: test
