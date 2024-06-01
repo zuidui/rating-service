@@ -4,6 +4,8 @@ from resolver.schema import UserType, UserInput
 
 from repository.user_repository import UserRepository
 
+from events.publisher import Publisher
+
 from utils.logger import logger_config
 from utils.converters import convert_user_to_usertype
 
@@ -18,6 +20,13 @@ class UserService:
         users = await UserRepository.get_all()
 
         log.info(f"Users: {users}")
+
+        # FIXME: This is for testing purposes only
+        publisher = Publisher()
+        publisher.publish(
+            {"event_type": "get_all_users", "data": [user.to_dict() for user in users]}
+        )
+        publisher.close()
 
         return [
             user_type

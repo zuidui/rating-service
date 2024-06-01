@@ -5,15 +5,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from strawberry import Schema
-from strawberry.fastapi import GraphQLRouter
-
 from database.sample import insert_sample_data
-
 from database.session import db
 
-from resolver.query import Query
-from resolver.mutation import Mutation
+from events.consumer import start_consumer
+from events.publisher import start_publisher
+
+from routes.graphql import graphql_router
+from routes.consumer import consumer_router
+from routes.health import health_router
 
 from utils.logger import logger_config
 from utils.config import get_settings
@@ -24,12 +24,17 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # As many consumers as needed can be started here and need to be closed when the app is closed
+    consumer = start_consumer("match-events")
+    publisher = start_publisher()
     try:
         await db.create_database()
         async with db.get_db() as session:
             await insert_sample_data(session)
         yield
     finally:
+        consumer.close()
+        publisher.close()
         await db.close_database()
 
 
@@ -63,9 +68,9 @@ def init_app():
         allow_headers=["*"],
     )
 
-    schema = Schema(query=Query, mutation=Mutation)
-    graphql_app = GraphQLRouter(schema, path="/graphql")
-    app.include_router(graphql_app, prefix=settings.API_PREFIX)
+    app.include_router(health_router)
+    app.include_router(graphql_router(), prefix=settings.API_PREFIX)
+    app.include_router(consumer_router, prefix=settings.API_PREFIX)
 
     log.info("Application created successfully")
 
