@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     DB_NAME: str
     API_GATEWAY_HOST: str
     API_GATEWAY_PORT: int
+    BROKER_HOST: str
+    BROKER_PORT: int
+    QUEUE_NAME: str
 
     @property
     def SQLALCHEMY_DATABASE_URI(self):
