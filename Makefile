@@ -10,10 +10,10 @@ export TAGS=$(shell curl -s "https://hub.docker.com/v2/repositories/${REGISTRY_P
 export LATEST_TAG := $(if $(TAGS),$(lastword $(sort $(TAGS))),00)
 export LATEST_VERSION := $(shell echo "$(LATEST_TAG)" | sed -E 's/([0-9]+\.[0-9]+\.[0-9]+)-rc[0-9]{2}+/\1/')
 export LATEST_RC := $(if $(filter-out 00,$(LATEST_TAG)),$(shell echo "$(LATEST_TAG)" | sed -E 's/^.*-rc([0-9]{2})$$/\1/'),00)
-ifneq ($(IMAGE_VERSION),$(LATEST_VERSION))
-	NEXT_RC := 00
+ifeq ($(IMAGE_VERSION),$(LATEST_VERSION))
+NEXT_RC := $(shell sh -c 'if [ "$(LATEST_RC)" -eq "08" ]; then printf "%02d" 9; elif [ "$(LATEST_RC)" -eq "09" ]; then printf "%02d" 10; else printf "%02d" $$(($(LATEST_RC) + 1)); fi')
 else
-	NEXT_RC := $(if $(filter-out 00,$(LATEST_TAG)),$(shell printf "%02d" $$(($(LATEST_RC) + 1))),00)
+NEXT_RC := 00
 endif
 export NEXT_RC
 
