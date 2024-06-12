@@ -1,6 +1,9 @@
 import pika  # type: ignore
 import json
 import threading
+import asyncio
+
+from service.rating_service import RatingService
 
 from utils.logger import logger_config
 from utils.config import get_settings
@@ -10,34 +13,56 @@ settings = get_settings()
 
 
 class Consumer:
-    def __init__(self, queue_name=settings.QUEUE_NAME):
-        self.connection = pika.BlockingConnection(
+    def __init__(self, queue_name: str):
+        self.queue_name = queue_name
+        self.connection = self._create_connection()
+        self.channel = self._create_channel()
+        self._declare_queue()
+
+    def _create_connection(self):
+        return pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=settings.BROKER_HOST, port=settings.BROKER_PORT
             )
         )
-        self.queue_name = queue_name
-        self.channel = self.connection.channel()
+
+    def _create_channel(self):
+        return self.connection.channel()
+
+    def _declare_queue(self):
         self.channel.queue_declare(queue=self.queue_name, durable=True)
 
     def consume(self):
-        self.channel.basic_consume(
-            queue=self.queue_name, on_message_callback=self.callback, auto_ack=True
-        )
-        log.info("Consuming messages...")
-        self.channel.start_consuming()
+        try:
+            self.channel.basic_consume(
+                queue=self.queue_name, on_message_callback=self._callback, auto_ack=True
+            )
+            log.info(f"Starting to consume messages from {self.queue_name}")
+            self.channel.start_consuming()
+        except Exception as e:
+            log.error(f"Error consuming messages: {e}")
+        finally:
+            self.close()
 
     def close(self):
-        self.connection.close()
-        log.info("Connection closed")
+        if self.connection.is_open:
+            self.connection.close()
+            log.info("Connection closed")
 
-    def callback(self, ch, method, properties, body):
-        message = json.loads(body)
-        log.info(f"Received message: {message}")
+    def _callback(self, ch, method, properties, body):
+        try:
+            message = json.loads(body)
+            asyncio.run(self._process_message(message))
+            log.info(f"Received message: {message}")
+        except json.JSONDecodeError as e:
+            log.error(f"Failed to decode message: {body} - Error: {e}")
+
+    async def _process_message(self, message):
+        await RatingService.handle_message(message)
 
 
-def start_consumer(queue_name=settings.QUEUE_NAME):
+def start_consumer(queue_name: str = settings.QUEUE_NAME) -> Consumer:
     consumer = Consumer(queue_name=queue_name)
-    consumer_thread = threading.Thread(target=consumer.consume)
+    consumer_thread = threading.Thread(target=consumer.consume, daemon=True)
     consumer_thread.start()
     return consumer

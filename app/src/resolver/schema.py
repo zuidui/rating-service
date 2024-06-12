@@ -1,18 +1,17 @@
-import strawberry
+from strawberry import Schema
 
-from typing import Optional
-
-
-@strawberry.type
-class UserType:
-    id: Optional[int]
-    name: str
-    email: str
-    password: str
+from resolver.player_rating_query import PlayerRatingQuery
+from resolver.player_rating_mutation import PlayerRatingMutation
+from resolver.score_query import ScoreQuery
+from resolver.score_mutation import ScoreMutation
 
 
-@strawberry.input
-class UserInput:
-    name: str
-    email: str
-    password: str
+class Query(PlayerRatingQuery, ScoreQuery):
+    pass
+
+
+class Mutation(PlayerRatingMutation, ScoreMutation):
+    pass
+
+
+schema = Schema(query=Query, mutation=Mutation)

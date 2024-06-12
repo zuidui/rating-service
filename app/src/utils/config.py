@@ -1,20 +1,17 @@
 import os
-import secrets
 
 from dotenv import load_dotenv
 
-from pydantic import Field
 from pydantic_settings import BaseSettings
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 
 
 class Settings(BaseSettings):
-    DEV: bool
     DEBUG: bool
+    DEBUG_PORT: int
+    LOG_LEVEL: str
     DOCKERHUB_USERNAME: str
-    AUTHOR: str
-    LICENSE: str
     IMAGE_NAME: str
     IMAGE_VERSION: str
     APP_MODULE: str
@@ -22,11 +19,10 @@ class Settings(BaseSettings):
     APP_HOST: str
     APP_DESCRIPTION: str
     API_PREFIX: str
-    SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
-    DOC_URL: str
     DEPENDENCIES: str
     DB_HOST: str
     DB_PORT: int
+    DB_HOST_PORT: str
     DB_USER: str
     DB_PASSWORD: str
     DB_NAME: str
