@@ -1,6 +1,8 @@
 import pika  # type: ignore
+import time
 import json
 import threading
+from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 from queue import Queue
 from datetime import datetime
 from typing import Any, Dict
@@ -22,23 +24,30 @@ class DateTimeEncoder(json.JSONEncoder):
 class Publisher:
     def __init__(self, queue_name: str = settings.QUEUE_NAME):
         self.queue_name = queue_name
-        self.connection = self._create_connection()
-        self.channel = self._create_channel()
-        self._declare_queue()
         self.message_queue: Queue[Dict[str, Any]] = Queue()
         self.thread = threading.Thread(target=self._run)
         self.thread.daemon = True
         self.thread.start()
+        self.connect()
 
-    def _create_connection(self):
-        return pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=settings.BROKER_HOST, port=settings.BROKER_PORT
-            )
-        )
-
-    def _create_channel(self):
-        return self.connection.channel()
+    def connect(self):
+        while True:
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(
+                        host=settings.BROKER_HOST, port=settings.BROKER_PORT,
+                        heartbeat=settings.BROKER_HEARTBEAT,
+                        connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,
+                        retry_delay=settings.BROKER_ATTEMPT_DELAY,
+                        blocked_connection_timeout=settings.BROKER_CONNECTION_TIMEOUT,
+                    )
+                )
+                self.channel = self.connection.channel()
+                self._declare_queue()
+                break
+            except AMQPConnectionError as e:
+                log.error(f"Connection error: {e}, retrying in 5 seconds...")
+                time.sleep(5)
 
     def _declare_queue(self):
         self.channel.queue_declare(queue=self.queue_name, durable=True)
@@ -52,6 +61,8 @@ class Publisher:
 
     def _publish(self, message: Dict[str, Any]):
         try:
+            if self.connection.is_closed or self.channel.is_closed:
+                self.connect()
             self.channel.basic_publish(
                 exchange="",
                 routing_key=self.queue_name,
@@ -61,8 +72,13 @@ class Publisher:
                 ),
             )
             log.info(f"Published message to {self.queue_name}: {message}")
+        except (AMQPConnectionError, ChannelClosedByBroker) as e:
+            log.error(f"Failed to publish message due to connection error: {e}, reconnecting...")
+            self.connect()
+            self._publish(message)
         except Exception as e:
             log.error(f"Failed to publish message: {message} - Error: {e}")
+
 
     def publish(self, message: Dict[str, Any]):
         self.message_queue.put(message)
@@ -70,7 +86,7 @@ class Publisher:
     def close(self):
         self.message_queue.put(None)
         self.thread.join()
-        if self.connection.is_open:
+        if self.connection and self.connection.is_open:
             self.connection.close()
         log.info(f"Connection to {self.queue_name} closed")
 

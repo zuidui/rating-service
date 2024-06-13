@@ -11,7 +11,7 @@ from data.session import db
 from events.consumer import start_consumer
 from events.publisher import start_publisher
 
-from routes.graphql_router import graphql_router
+from routes.graphql_router import graphql_app, graphql_router
 from routes.health_router import health_router
 
 from utils.logger import logger_config
@@ -23,14 +23,13 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # As many consumers as needed can be started here and need to be closed when the app is closed
     consumer = start_consumer(settings.QUEUE_NAME)
     publisher = start_publisher(settings.QUEUE_NAME)
     try:
         await db.create_database()
         async with db.get_db() as session:
-            await insert_sample_scores(session)
             await insert_sample_player_ratings(session)
+            await insert_sample_scores(session)
         app.state.consumer = consumer
         app.state.publisher = publisher
         yield
@@ -67,10 +66,11 @@ def init_app():
         lifespan=lifespan,
     )
 
+    origins = ['*']
+
     app.add_middleware(
         CORSMiddleware,
-        # Need to check how to allow only the API Gateway URL and the Database URI
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -78,7 +78,8 @@ def init_app():
 
     app.router.lifespan_context = lifespan
     app.include_router(health_router)
-    app.include_router(graphql_router(get_context), prefix=settings.API_PREFIX)
+    app.include_router(graphql_router)
+    app.include_router(graphql_app(get_context), prefix=settings.API_PREFIX)
 
     log.info("Application created successfully")
 

@@ -1,4 +1,5 @@
 import pika  # type: ignore
+import time
 import json
 import threading
 import asyncio
@@ -12,22 +13,32 @@ log = logger_config(__name__)
 settings = get_settings()
 
 
+
 class Consumer:
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
-        self.connection = self._create_connection()
-        self.channel = self._create_channel()
+        self.connection = None
+        self.channel = None
+        self.connect()
         self._declare_queue()
 
-    def _create_connection(self):
-        return pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=settings.BROKER_HOST, port=settings.BROKER_PORT
-            )
-        )
-
-    def _create_channel(self):
-        return self.connection.channel()
+    def connect(self):
+        while True:
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(
+                        host=settings.BROKER_HOST, port=settings.BROKER_PORT,
+                        heartbeat=settings.BROKER_HEARTBEAT,
+                        connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,
+                        retry_delay=settings.BROKER_ATTEMPT_DELAY,
+                        blocked_connection_timeout=settings.BROKER_CONNECTION_TIMEOUT,
+                    )
+                )
+                self.channel = self.connection.channel()
+                break
+            except Exception as e:
+                log.error(f"Connection error: {e}, retrying in 5 seconds...")
+                time.sleep(5)
 
     def _declare_queue(self):
         self.channel.queue_declare(queue=self.queue_name, durable=True)
@@ -45,7 +56,7 @@ class Consumer:
             self.close()
 
     def close(self):
-        if self.connection.is_open:
+        if self.connection and self.connection.is_open:
             self.connection.close()
             log.info("Connection closed")
 

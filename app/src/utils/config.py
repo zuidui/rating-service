@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     API_GATEWAY_PORT: int
     BROKER_HOST: str
     BROKER_PORT: int
+    BROKER_HEARTBEAT: int
+    BROKER_HEARTBEAT: int
+    BROKER_CONNECTION_ATTEMPTS: int
+    BROKER_CONNECTION_TIMEOUT: int
+    BROKER_ATTEMPT_DELAY: int
     QUEUE_NAME: str
 
     @property
