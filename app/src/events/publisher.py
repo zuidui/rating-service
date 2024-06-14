@@ -1,9 +1,6 @@
-import pika  # type: ignore
-import time
+import aio_pika
+from aio_pika import connect_robust
 import json
-import threading
-from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
-from queue import Queue
 from datetime import datetime
 from typing import Any, Dict
 
@@ -22,82 +19,56 @@ class DateTimeEncoder(json.JSONEncoder):
 
 
 class Publisher:
-    def __init__(self, queue_name: str = settings.QUEUE_NAME):
+    def __init__(
+        self,
+        connection: aio_pika.RobustConnection,
+        queue_name: str = settings.QUEUE_NAME,
+    ):
         self.queue_name = queue_name
-        self.message_queue: Queue[Dict[str, Any]] = Queue()
-        self.thread = threading.Thread(target=self._run)
-        self.thread.daemon = True
-        self.thread.start()
-        self.connect()
+        self.connection = connection
+        self.channel = None
 
-    def connect(self):
-        while True:
-            try:
-                self.connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(
-                        host=settings.BROKER_HOST, port=settings.BROKER_PORT,
-                        heartbeat=settings.BROKER_HEARTBEAT,
-                        connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,
-                        retry_delay=settings.BROKER_ATTEMPT_DELAY,
-                        blocked_connection_timeout=settings.BROKER_CONNECTION_TIMEOUT,
-                    )
-                )
-                self.channel = self.connection.channel()
-                self._declare_queue()
-                break
-            except AMQPConnectionError as e:
-                log.error(f"Connection error: {e}, retrying in 5 seconds...")
-                time.sleep(5)
+    async def connect(self):
+        self.channel = await self.connection.channel()
+        await self._declare_queue()
+        log.info(f"Connected to {self.queue_name}")
 
-    def _declare_queue(self):
-        self.channel.queue_declare(queue=self.queue_name, durable=True)
+    async def _declare_queue(self):
+        await self.channel.declare_queue(self.queue_name, durable=True)
 
-    def _run(self):
-        while True:
-            message = self.message_queue.get()
-            if message is None:
-                break
-            self._publish(message)
+    async def publish(self, message: Dict[str, Any]):
+        if not self.channel:
+            raise ConnectionError("Channel is not initialized. Call connect() first.")
+        await self.channel.default_exchange.publish(
+            aio_pika.Message(body=json.dumps(message, cls=DateTimeEncoder).encode()),
+            routing_key=self.queue_name,
+        )
+        log.info(f"Published message to {self.queue_name}: {message}")
 
-    def _publish(self, message: Dict[str, Any]):
-        try:
-            if self.connection.is_closed or self.channel.is_closed:
-                self.connect()
-            self.channel.basic_publish(
-                exchange="",
-                routing_key=self.queue_name,
-                body=json.dumps(message, cls=DateTimeEncoder),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,  # make message persistent
-                ),
-            )
-            log.info(f"Published message to {self.queue_name}: {message}")
-        except (AMQPConnectionError, ChannelClosedByBroker) as e:
-            log.error(f"Failed to publish message due to connection error: {e}, reconnecting...")
-            self.connect()
-            self._publish(message)
-        except Exception as e:
-            log.error(f"Failed to publish message: {message} - Error: {e}")
+    async def close(self):
+        if self.connection:
+            await self.connection.close()
+            log.info(f"Connection to {self.queue_name} closed")
 
 
-    def publish(self, message: Dict[str, Any]):
-        self.message_queue.put(message)
-
-    def close(self):
-        self.message_queue.put(None)
-        self.thread.join()
-        if self.connection and self.connection.is_open:
-            self.connection.close()
-        log.info(f"Connection to {self.queue_name} closed")
-
-
-def start_publisher(queue_name: str = settings.QUEUE_NAME) -> Publisher:
-    return Publisher(queue_name=queue_name)
+async def start_publisher(loop) -> Publisher:
+    connection = await connect_robust(
+        host=settings.BROKER_HOST, 
+        port=settings.BROKER_PORT, 
+        loop=loop,
+        heartbeat=settings.BROKER_HEARTBEAT,
+        connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,
+        connection_timeout=settings.BROKER_CONNECTION_TIMEOUT,
+        attempt_delay=settings.BROKER_ATTEMPT_DELAY,
+    )
+    publisher = Publisher(connection)
+    await publisher.connect()
+    return publisher
 
 
 async def publish_event(
     publisher: Publisher, event_type: str, data: Dict[str, Any]
 ) -> bool:
     event = {"event_type": event_type, "data": data}
-    publisher.publish(event)
+    await publisher.publish(event)
     return True

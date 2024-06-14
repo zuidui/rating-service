@@ -9,9 +9,9 @@ class PlayerRating(Base):
     __tablename__ = "player_ratings"
 
     player_id = Column(Integer, primary_key=True, index=True)
-    team_id = Column(Integer, nullable=False)
-    average_score = Column(Float, nullable=False)
-    total_of_scores = Column(Integer, nullable=False)
+    team_id = Column(Integer)
+    average_score = Column(Float)
+    total_of_scores = Column(Integer)
     last_updated = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

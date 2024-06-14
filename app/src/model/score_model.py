@@ -10,8 +10,8 @@ class Score(Base):
 
     score_id = Column(Integer, primary_key=True, index=True)
     player_id = Column(Integer, ForeignKey("player_ratings.player_id"))
-    team_id = Column(Integer, nullable=False)
-    score = Column(Integer, nullable=False)
+    team_id = Column(Integer)
+    score = Column(Integer)
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

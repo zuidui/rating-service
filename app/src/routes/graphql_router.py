@@ -7,7 +7,10 @@ from resolver.schema import schema
 def graphql_app(get_context):
     return GraphQLRouter(schema, path="/graphql", context_getter=get_context)
 
+
 graphql_router = APIRouter()
+
+
 @graphql_router.get("/schema")
 def get_schema():
     return schema.as_str()

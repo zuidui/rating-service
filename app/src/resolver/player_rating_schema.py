@@ -2,7 +2,14 @@ import strawberry
 
 
 @strawberry.type
-class PlayerRatingType:
-    team_id: int = strawberry.field(name="team_id")
+class RatingType:
     player_id: int = strawberry.field(name="player_id")
-    player_score: float = strawberry.field(name="player_score")
+    player_team_id: int = strawberry.field(name="player_team_id")
+    player_average_score: float = strawberry.field(name="player_average_score")
+
+
+@strawberry.input
+class PlayerRatingInput:
+    player_id: int = strawberry.field(name="player_id")
+    player_team_id: int = strawberry.field(name="player_team_id")
+    player_score: int = strawberry.field(name="player_score")

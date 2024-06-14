@@ -1,4 +1,10 @@
 import strawberry
+from strawberry.types import Info
+from typing import Annotated, Optional
+
+from service.rating_service import RatingService
+
+from resolver.score_schema import ScoreInput, ScoreType
 
 from utils.logger import logger_config
 
@@ -7,18 +13,12 @@ log = logger_config(__name__)
 
 @strawberry.type
 class Mutation:
-    @strawberry.mutation
-    def create_score(self, team_id: int, player_id: int, player_score: float) -> str:
-        log.info(
-            f"Creating score for team_id: {team_id}, player_id: {player_id}, player_score: {player_score}"
-        )
-        return "Score created successfully"
-    
-    @strawberry.mutation
-    def create_player_rating(
-        self, team_id: int, player_id: int, player_score: float
-    ) -> str:
-        log.info(
-            f"Creating player rating for team_id: {team_id}, player_id: {player_id}, player_score: {player_score}"
-        )
-        return "Player rating created successfully"
+    @strawberry.mutation(name="create_score")
+    async def create_score(
+        self,
+        info: Info,
+        new_score: Annotated[ScoreInput, strawberry.argument(name="new_score")],
+    ) -> Optional[ScoreType]:
+        publisher = info.context["publisher"]
+        log.info(f"Creating score: {new_score}")
+        return await RatingService.create_score(new_score, publisher)

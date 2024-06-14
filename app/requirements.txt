@@ -16,5 +16,4 @@ schema
 strawberry-graphql[fastapi]
 pytest-asyncio
 sqlalchemy
-sqlalchemy-utils
-pika
+aio-pika

@@ -1,8 +1,16 @@
 import strawberry
+from typing import Annotated, Optional
+
+from resolver.player_rating_schema import PlayerRatingInput, RatingType
+
+from service.rating_service import RatingService
 
 
 @strawberry.type
 class Query:
-    @strawberry.field(name="get_player_score")
-    def get_player_score(self, team_id: int, player_id: int) -> str:
-        return f"Player rating for team_id: {team_id}, player_id: {player_id} is 8.5"
+    @strawberry.field(name="get_player_rating")
+    async def get_player_rating(
+        self,
+        player: Annotated[PlayerRatingInput, strawberry.argument(name="player")],
+    ) -> Optional[RatingType]:
+        return await RatingService.get_player_rating(player)

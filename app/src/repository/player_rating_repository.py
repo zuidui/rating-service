@@ -31,3 +31,13 @@ class PlayerRatingRepository:
             if player_rating:
                 log.info(f"Player rating found in repository: {player_rating}")
         return player_rating
+
+    @staticmethod
+    async def update(player_rating: PlayerRating) -> PlayerRating:
+        async with db.get_db() as session:
+            async with db.commit_rollback(session):
+                session.add(player_rating)
+                await session.flush()
+                await session.refresh(player_rating)
+                log.info(f"Player rating updated in repository: {player_rating}")
+        return player_rating
