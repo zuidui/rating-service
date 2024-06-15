@@ -14,6 +14,7 @@ else
 NEXT_RC := 00
 endif
 export NEXT_RC
+export GH_TAG := $(shell git fetch --tags && git tag --sort=-creatordate | head -n 1)
 
 .PHONY: help
 help:  ## Show this help.
@@ -35,6 +36,7 @@ show-env:  ## Show the environment variables.
 	@echo "LATEST_VERSION: $(LATEST_VERSION)"
 	@echo "LATEST_RC: $(LATEST_RC)"
 	@echo "NEXT_RC: $(NEXT_RC)"
+	@echo "GH_TAG: $(GH_TAG)"
 
 .PHONY: set-up
 set-up: ## Prepare the environment for debugging.
@@ -98,7 +100,6 @@ publish-image-pre: build ## Push the release candidate to the registry.
 	@docker push $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)
 	@docker push $(REGISTRY_PRE):latest
 
-## TODO: Check if the latest version is the same as the image version error when creating release in GitHub
 .PHONY: publish-image-pro
 publish-image-pro:  ## Publish the latest release to the registry.
 	@echo "Publishing the latest image in the registry - $(REGISTRY_PRO):$(LATEST_VERSION)"
@@ -107,8 +108,11 @@ publish-image-pro:  ## Publish the latest release to the registry.
 	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):$(LATEST_VERSION)
 	@docker push $(REGISTRY_PRO):$(LATEST_VERSION)
 	@docker push $(REGISTRY_PRO):latest
-##@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git tag -d $(LATEST_VERSION); fi
-##@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"	
-##@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git release delete $(LATEST_VERSION); fi
-##@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
-##@git push origin $(LATEST_VERSION)	
+	@if [ "$(GH_TAG)" = "$(IMAGE_VERSION)" ]; then \
+	    git tag -d $(LATEST_VERSION); \
+		git push origin --delete $(LATEST_VERSION); \
+	    gh release delete $(LATEST_VERSION) --yes; \
+	fi
+	@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"	
+	@git push --force origin $(LATEST_VERSION)	
+	@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
