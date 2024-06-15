@@ -21,6 +21,7 @@ from utils.config import get_settings
 log = logger_config(__name__)
 settings = get_settings()
 
+
 class RatingService:
     @staticmethod
     async def send_to_api_gateway(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -46,7 +47,9 @@ class RatingService:
         return None
 
     @staticmethod
-    async def handle_message(app: FastAPI, message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def handle_message(
+        app: FastAPI, message: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         publisher = app.state.publisher
         event_type = message["event_type"]
         data = message["data"]
@@ -117,8 +120,8 @@ class RatingService:
         )
 
         try:
-            if not await RatingService.rating_exists_by_player_id( 
-                new_score.player_id, new_score.team_id
+            if not await RatingService.rating_exists_by_player_id(
+                new_score["player_id"], new_score["team_id"]
             ):
                 log.info(
                     f"Player rating for player_id: {new_score.player_id} and team_id: {new_score.team_id} does not exist. Creating new player rating."
@@ -151,7 +154,9 @@ class RatingService:
                     },
                 )
             else:
-                log.info(f"Player rating exists for player_id: {new_score.player_id} - Creating new score.")
+                log.info(
+                    f"Player rating exists for player_id: {new_score.player_id} - Creating new score."
+                )
                 score = (await ScoreRepository.create(new_score)).to_dict()
                 score_created = ScoreType(
                     player_id=score["player_id"],
@@ -176,6 +181,7 @@ class RatingService:
         except Exception as e:
             log.error(f"Error creating score: {e}")
             raise e
+        return None
 
     @staticmethod
     async def update_rating(

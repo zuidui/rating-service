@@ -13,8 +13,6 @@ from utils.config import get_settings
 log = logger_config(__name__)
 settings = get_settings()
 
-consumer_instance = None
-
 
 class Consumer:
     def __init__(
@@ -30,13 +28,20 @@ class Consumer:
     async def connect(self):
         self.channel = await self.connection.channel()
         self.queue = await self.channel.declare_queue(self.queue_name, durable=True)
+        if not self.queue:
+            raise ConnectionError(f"Failed to declare queue: {self.queue_name}")
 
     async def consume(self, app: FastAPI):
         while True:
             try:
-                await self.queue.consume(lambda message: self._callback(app, message), no_ack=False)
-                log.info(f"Starting to consume messages from {self.queue_name}")
-                break
+                if not self.queue:
+                    await self.connect()
+                if self.queue:
+                    await self.queue.consume(
+                        lambda message: self._callback(app, message), no_ack=False
+                    )
+                    log.info(f"Starting to consume messages from {self.queue_name}")
+                    break
             except (ConnectionClosed, ChannelClosed) as e:
                 log.error(f"Connection closed, retrying... {e}")
                 await asyncio.sleep(5)
@@ -61,8 +66,8 @@ class Consumer:
 
 async def start_consumer(loop, app: FastAPI) -> Consumer:
     connection = await connect_robust(
-        host=settings.BROKER_HOST, 
-        port=settings.BROKER_PORT, 
+        host=settings.BROKER_HOST,
+        port=settings.BROKER_PORT,
         loop=loop,
         heartbeat=settings.BROKER_HEARTBEAT,
         connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,

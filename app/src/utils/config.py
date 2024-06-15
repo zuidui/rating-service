@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     BROKER_HEARTBEAT: int
     BROKER_CONNECTION_ATTEMPTS: int
     BROKER_CONNECTION_TIMEOUT: int
-    BROKER_ATTEMPT_DELAY: int    
+    BROKER_ATTEMPT_DELAY: int
     QUEUE_NAME: str
 
     @property

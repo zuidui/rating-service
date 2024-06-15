@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from data.sample import insert_sample_scores, insert_sample_player_ratings
 from data.session import db
 
-from events.consumer import start_consumer
+from events.consumer import Consumer, start_consumer
 from events.publisher import Publisher, start_publisher
 
 from routes.graphql_router import graphql_app, graphql_router
@@ -21,27 +21,28 @@ from utils.config import get_settings
 log = logger_config(__name__)
 settings = get_settings()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
-    consumer = await start_consumer(loop, app)
-    publisher = await start_publisher(loop)
+    consumer_connection: Consumer = await start_consumer(loop, app)
+    publisher_connection: Publisher = await start_publisher(loop)
     try:
         await db.create_database()
         async with db.get_db() as session:
             await insert_sample_player_ratings(session)
             await insert_sample_scores(session)
-        app.state.consumer = consumer
-        app.state.publisher = publisher
+        app.state.consumer_connection = consumer_connection
+        app.state.publisher_connection = publisher_connection
         yield
     finally:
-        await consumer.close()
-        await publisher.close()
+        await consumer_connection.close()
+        await publisher_connection.close()
         await db.close_database()
 
 
 async def get_context(request: Request) -> dict:
-    return {"publisher": request.app.state.publisher}
+    return {"publisher": request.app.state.publisher_connection}
 
 
 def init_app():
