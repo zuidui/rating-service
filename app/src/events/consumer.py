@@ -76,5 +76,5 @@ async def start_consumer(loop, app: FastAPI) -> Consumer:
     )
     consumer = Consumer(connection)
     await consumer.connect()
-    asyncio.create_task(consumer.consume(app))  # Ensure consume runs in the background
+    asyncio.create_task(consumer.consume(app))
     return consumer

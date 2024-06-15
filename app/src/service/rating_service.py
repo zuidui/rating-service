@@ -121,7 +121,7 @@ class RatingService:
 
         try:
             if not await RatingService.rating_exists_by_player_id(
-                new_score["player_id"], new_score["team_id"]
+                new_score.player_id, new_score.team_id
             ):
                 log.info(
                     f"Player rating for player_id: {new_score.player_id} and team_id: {new_score.team_id} does not exist. Creating new player rating."

@@ -25,25 +25,23 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
-    consumer_connection: Consumer = await start_consumer(loop, app)
-    publisher_connection: Publisher = await start_publisher(loop)
+    consumer: Consumer = await start_consumer(loop, app)
+    publisher: Publisher = await start_publisher(loop)
+    app.state.consumer = consumer
+    app.state.publisher = publisher
     try:
         await db.create_database()
         async with db.get_db() as session:
             await insert_sample_player_ratings(session)
             await insert_sample_scores(session)
-        app.state.consumer_connection = consumer_connection
-        app.state.publisher_connection = publisher_connection
         yield
     finally:
-        await consumer_connection.close()
-        await publisher_connection.close()
+        await consumer.close()
+        await publisher.close()
         await db.close_database()
 
-
 async def get_context(request: Request) -> dict:
-    return {"publisher": request.app.state.publisher_connection}
-
+    return {"publisher": request.app.state.publisher}
 
 def init_app():
     log.info("Creating application...")
