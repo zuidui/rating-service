@@ -2,20 +2,19 @@
 
 include app/.env
 
-SRC_PATH=./app
-VENV_PATH=.venv
 export REGISTRY_PRE=$(DOCKERHUB_USERNAME)/$(IMAGE_NAME)-dev
 export REGISTRY_PRO=$(DOCKERHUB_USERNAME)/$(IMAGE_NAME)
 export TAGS=$(shell curl -s "https://hub.docker.com/v2/repositories/${REGISTRY_PRE}/tags/" | jq -r '.results[].name'| grep -E 'rc[0-9]{2}' | tr '\n' ' ')
 export LATEST_TAG := $(if $(TAGS),$(lastword $(sort $(TAGS))),00)
 export LATEST_VERSION := $(shell echo "$(LATEST_TAG)" | sed -E 's/([0-9]+\.[0-9]+\.[0-9]+)-rc[0-9]{2}+/\1/')
 export LATEST_RC := $(if $(filter-out 00,$(LATEST_TAG)),$(shell echo "$(LATEST_TAG)" | sed -E 's/^.*-rc([0-9]{2})$$/\1/'),00)
-ifneq ($(IMAGE_VERSION),$(LATEST_VERSION))
-	NEXT_RC := 00
+ifeq ($(IMAGE_VERSION),$(LATEST_VERSION))
+NEXT_RC := $(shell sh -c 'if [ "$(LATEST_RC)" -eq "08" ]; then printf "%02d" 9; elif [ "$(LATEST_RC)" -eq "09" ]; then printf "%02d" 10; else printf "%02d" $$(($(LATEST_RC) + 1)); fi')
 else
-	NEXT_RC := $(if $(filter-out 00,$(LATEST_TAG)),$(shell printf "%02d" $$(($(LATEST_RC) + 1))),00)
+NEXT_RC := 00
 endif
 export NEXT_RC
+export GH_TAG := $(shell git fetch --tags && git tag --sort=-creatordate | head -n 1)
 
 .PHONY: help
 help:  ## Show this help.
@@ -37,17 +36,12 @@ show-env:  ## Show the environment variables.
 	@echo "LATEST_VERSION: $(LATEST_VERSION)"
 	@echo "LATEST_RC: $(LATEST_RC)"
 	@echo "NEXT_RC: $(NEXT_RC)"
+	@echo "GH_TAG: $(GH_TAG)"
 
-.PHONY: debug
-debug: ## Prepare the app for debugging.
+.PHONY: set-up
+set-up: ## Prepare the environment for debugging.
 	@echo "Preparing $(IMAGE_NAME) for debugging."
-	@[ -e $(VENV_PATH) ] && rm -rf $(VENV_PATH) || echo "The virtual environment does not exist."
-	@python -m venv $(VENV_PATH)
-	@chmod +x $(VENV_PATH)/bin/activate
 	@./scripts/create-requirements.sh
-	@/bin/bash -c "source $(VENV_PATH)/bin/activate && pip install --upgrade pip setuptools"
-	@/bin/bash -c "source $(VENV_PATH)/bin/activate && pip install -r app/requirements.txt"
-	@/bin/bash -c "source $(VENV_PATH)/bin/activate && python app/src/main.py"
 
 .PHONY: start-db 
 start-db:  ## Start the database.
@@ -55,51 +49,26 @@ start-db:  ## Start the database.
 	@docker-compose -f $(SRC_PATH)/docker-compose.yml up -d db pgadmin
 	@./scripts/wait-for-it.sh db:$(DB_PORT) --timeout=5 -- echo "Database is up and running"
 
-.PHONY: run
-run:  pre-commit ## Start the app in development mode.
-	@echo "Starting $(IMAGE_NAME) in development mode."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml up --build $(IMAGE_NAME)
-
 .PHONY: clean
 clean:  ## Clean the app.
 	@echo "Cleaning $(IMAGE_NAME) docker image."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml down --rmi all --volumes --remove-orphans
+	docker-compose -f ./app/docker-compose.yml down --rmi all --volumes
 
 .PHONY: build
 build:  ## Build the app.
 	@echo "Building $(IMAGE_NAME) docker image as $(IMAGE_NAME):$(IMAGE_VERSION)."
-	docker build -t $(REGISTRY_PRE):$(IMAGE_VERSION) $(SRC_PATH)
+	docker build -t $(REGISTRY_PRE):$(IMAGE_VERSION) ./app
 
-.PHONY: publish-image-pre
-publish-image-pre: build ## Push the release candidate to the registry.
-	@echo "Publishing the image as release candidate -  $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)"
-	@docker tag $(REGISTRY_PRE):$(IMAGE_VERSION) $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)
-	@docker push $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)
-	@git tag -a $(IMAGE_VERSION)-rc$(NEXT_RC) -m "Release candidate $(IMAGE_VERSION)-rc$(NEXT_RC)"
-	@git push origin $(IMAGE_VERSION)-rc$(NEXT_RC)
-
-## TODO: Check if the latest version is the same as the image version error when creating release in GitHub
-.PHONY: publish-image-pro
-publish-image-pro:  ## Publish the latest release to the registry.
-	@echo "Publishing the latest image in the registry - $(REGISTRY_PRO):$(LATEST_VERSION)"
-	@docker pull $(REGISTRY_PRE):$(LATEST_TAG)
-	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):latest
-	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):$(LATEST_VERSION)
-	@docker push $(REGISTRY_PRO):$(LATEST_VERSION)
-	@docker push $(REGISTRY_PRO):latest
-##@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git tag -d $(LATEST_VERSION); fi
-##@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"	
-##@if [ "$(LATEST_VERSION)" == "$(IMAGE_VERSION)" ]; then git release delete $(LATEST_VERSION); fi
-##@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
-##@git push origin $(LATEST_VERSION)	
+.PHONY: run
+run:  pre-commit ## Start the app in development mode.
+	@echo "Starting $(IMAGE_NAME) in development mode."
+	docker-compose -f ./app/docker-compose.yml up --build $(IMAGE_NAME)
 
 # TODO: Implement tests
 .PHONY: test
-test: build ## Run the unit, integration and acceptance tests.
+test: ## Run the unit, integration and acceptance tests.
 	@echo "Running the unit, integration and acceptance tests."
-	$(MAKE) test-unit
-	$(MAKE) test-integration
-	$(MAKE) test-acceptance
+	docker-compose -f ./app/docker-compose.yml run --rm $(IMAGE_NAME) pytest -n 4 /workspace/app/tests -ra
 
 .PHONY: pre-commit
 pre-commit:  ## Run the pre-commit checks.
@@ -111,29 +80,39 @@ pre-commit:  ## Run the pre-commit checks.
 .PHONY: check-typing
 check-typing:  ## Check the typing.
 	@echo "Checking the typing."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml run --rm $(IMAGE_NAME) mypy .
+	docker-compose -f ./app/docker-compose.yml run --rm $(IMAGE_NAME) mypy .
 
 .PHONY: check-style
 check-style:  ## Check the styling.
 	@echo "Checking the styling."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml run --rm $(IMAGE_NAME) ruff check .
+	docker-compose -f ./app/docker-compose.yml run --rm $(IMAGE_NAME) ruff check .
 	
 .PHONY: reformat
 reformat:  ## Reformat the code.
 	@echo "Reformatting the code."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml run --rm $(IMAGE_NAME) ruff format .
+	docker-compose -f ./app/docker-compose.yml run --rm $(IMAGE_NAME) ruff format .
 
-.PHONY: test-unit
-test-unit:  ## Run the unit tests.
-	@echo "Running the unit tests."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml run --rm $(IMAGE_NAME) pytest -n 4 tests/unit -ra 
+.PHONY: publish-image-pre
+publish-image-pre: build ## Push the release candidate to the registry.
+	@echo "Publishing the image as release candidate -  $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)"
+	@docker tag $(REGISTRY_PRE):$(IMAGE_VERSION) $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)
+	@docker tag $(REGISTRY_PRE):$(IMAGE_VERSION) $(REGISTRY_PRE):latest
+	@docker push $(REGISTRY_PRE):$(IMAGE_VERSION)-rc$(NEXT_RC)
+	@docker push $(REGISTRY_PRE):latest
 
-.PHONY: test-acceptance
-test-acceptance:  ## Run the acceptance tests.
-	@echo "Running the acceptance tests."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml run --rm $(IMAGE_NAME) pytest -n 4 tests/acceptance -ra
-	
-.PHONY: test-integration
-test-integration:  ## Run the integration tests.
-	@echo "Running the integration tests."
-	docker-compose -f $(SRC_PATH)/docker-compose.yml run --rm $(IMAGE_NAME) pytest -n 4 tests/integration -ra
+.PHONY: publish-image-pro
+publish-image-pro:  ## Publish the latest release to the registry.
+	@echo "Publishing the latest image in the registry - $(REGISTRY_PRO):$(LATEST_VERSION)"
+	@docker pull $(REGISTRY_PRE):$(LATEST_TAG)
+	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):latest
+	@docker tag $(REGISTRY_PRE):$(LATEST_TAG) $(REGISTRY_PRO):$(LATEST_VERSION)
+	@docker push $(REGISTRY_PRO):$(LATEST_VERSION)
+	@docker push $(REGISTRY_PRO):latest
+	@if [ "$(GH_TAG)" = "$(IMAGE_VERSION)" ]; then \
+	    git tag -d $(LATEST_VERSION); \
+		git push origin --delete $(LATEST_VERSION); \
+	    gh release delete $(LATEST_VERSION) --yes; \
+	fi
+	@git tag -a $(LATEST_VERSION) -m "Release $(LATEST_VERSION)"	
+	@git push --force origin $(LATEST_VERSION)	
+	@gh release create $(LATEST_VERSION) -t $(LATEST_VERSION) -n $(LATEST_VERSION)
