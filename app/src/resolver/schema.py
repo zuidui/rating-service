@@ -1,18 +1,6 @@
-import strawberry
+from strawberry import Schema
 
-from typing import Optional
+from resolver.mutation import Mutation
+from resolver.query import Query
 
-
-@strawberry.type
-class UserType:
-    id: Optional[int]
-    name: str
-    email: str
-    password: str
-
-
-@strawberry.input
-class UserInput:
-    name: str
-    email: str
-    password: str
+schema = Schema(query=Query, mutation=Mutation)

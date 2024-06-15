@@ -1,0 +1,32 @@
+{
+    "name": "Rating Service Dev Container",
+    "dockerComposeFile": "../app/docker-compose.yml",
+    "service": "rating-service",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+      "vscode": {
+          "settings": {
+              "terminal.integrated.shell.linux": "/bin/bash",
+              "python.pythonPath": "/usr/local/bin/python"
+          },
+          "extensions": [
+              "ms-python.python",
+              "ms-azuretools.vscode-docker",
+              "ms-python.vscode-pylance",
+              "visualstudioexptteam.vscodeintellicode"
+          ]
+      }
+  },
+  "runServices": ["rating-service"],
+  "shutdownAction": "stopCompose",
+  "remoteEnv": {
+      "APP_PORT": "8083",
+      "DEBUG_PORT": "5680"
+  },
+  "mounts": [
+      "source=${localWorkspaceFolder}/app,target=/workspace/app,type=bind,consistency=cached",
+      "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,consistency=cached",
+      "source=${localWorkspaceFolder}/.vscode,target=/workspace/.vscode,type=bind,consistency=cached"
+  ],    
+  "forwardPorts": [8083, 5680]
+}

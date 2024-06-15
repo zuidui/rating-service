@@ -1,7 +1,8 @@
-import pika  # type: ignore
+import aio_pika
+from aio_pika import connect_robust
 import json
-import threading
-from queue import Queue
+from datetime import datetime
+from typing import Any, Dict
 
 from utils.logger import logger_config
 from utils.config import get_settings
@@ -10,48 +11,64 @@ log = logger_config(__name__)
 settings = get_settings()
 
 
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj: Any) -> str:
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+
 class Publisher:
-    def __init__(self):
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=settings.BROKER_HOST, port=settings.BROKER_PORT
-            )
-        )
-        self.queue_name = settings.QUEUE_NAME
-        self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=self.queue_name, durable=True)
-        self.message_queue = Queue()
-        self.thread = threading.Thread(target=self.run)
-        self.thread.daemon = True
-        self.thread.start()
+    def __init__(
+        self,
+        connection: aio_pika.RobustConnection,
+        queue_name: str = settings.QUEUE_NAME,
+    ):
+        self.queue_name = queue_name
+        self.connection = connection
+        self.channel = None
 
-    def run(self):
-        while True:
-            message = self.message_queue.get()
-            if message is None:
-                break
-            self._publish(message)
+    async def connect(self):
+        self.channel = await self.connection.channel()
+        await self._declare_queue()
+        log.info(f"Connected to {self.queue_name}")
 
-    def _publish(self, message):
-        self.channel.basic_publish(
-            exchange="",
+    async def _declare_queue(self):
+        await self.channel.declare_queue(self.queue_name, durable=True)
+
+    async def publish(self, message: Dict[str, Any]):
+        if not self.channel:
+            raise ConnectionError("Channel is not initialized. Call connect() first.")
+        await self.channel.default_exchange.publish(
+            aio_pika.Message(body=json.dumps(message, cls=DateTimeEncoder).encode()),
             routing_key=self.queue_name,
-            body=json.dumps(message),
-            properties=pika.BasicProperties(
-                delivery_mode=2,  # make message persistent
-            ),
         )
         log.info(f"Published message to {self.queue_name}: {message}")
 
-    def publish(self, message):
-        self.message_queue.put(message)
-
-    def close(self):
-        self.message_queue.put(None)
-        self.thread.join()
-        self.connection.close()
-        log.info(f"Connection to {self.queue_name} closed")
+    async def close(self):
+        if self.connection:
+            await self.connection.close()
+            log.info(f"Connection to {self.queue_name} closed")
 
 
-def start_publisher():
-    return Publisher()
+async def start_publisher(loop) -> Publisher:
+    connection = await connect_robust(
+        host=settings.BROKER_HOST, 
+        port=settings.BROKER_PORT, 
+        loop=loop,
+        heartbeat=settings.BROKER_HEARTBEAT,
+        connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,
+        connection_timeout=settings.BROKER_CONNECTION_TIMEOUT,
+        attempt_delay=settings.BROKER_ATTEMPT_DELAY,
+    )
+    publisher = Publisher(connection)
+    await publisher.connect()
+    return publisher
+
+
+async def publish_event(
+    publisher: Publisher, event_type: str, data: Dict[str, Any]
+) -> bool:
+    event = {"event_type": event_type, "data": data}
+    await publisher.publish(event)
+    return True

@@ -1,6 +1,11 @@
-import pika  # type: ignore
+from fastapi import FastAPI
+import aio_pika
+from aio_pika import connect_robust, IncomingMessage
+from aio_pika.exceptions import ConnectionClosed, ChannelClosed
 import json
-import threading
+import asyncio
+
+from service.rating_service import RatingService
 
 from utils.logger import logger_config
 from utils.config import get_settings
@@ -8,36 +13,63 @@ from utils.config import get_settings
 log = logger_config(__name__)
 settings = get_settings()
 
+consumer_instance = None
+
 
 class Consumer:
-    def __init__(self, queue_name=settings.QUEUE_NAME):
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=settings.BROKER_HOST, port=settings.BROKER_PORT
-            )
-        )
+    def __init__(
+        self,
+        connection: aio_pika.abc.AbstractRobustConnection,
+        queue_name: str = settings.QUEUE_NAME,
+    ):
         self.queue_name = queue_name
-        self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=self.queue_name, durable=True)
+        self.connection = connection
+        self.channel = None
+        self.queue = None
 
-    def consume(self):
-        self.channel.basic_consume(
-            queue=self.queue_name, on_message_callback=self.callback, auto_ack=True
-        )
-        log.info("Consuming messages...")
-        self.channel.start_consuming()
+    async def connect(self):
+        self.channel = await self.connection.channel()
+        self.queue = await self.channel.declare_queue(self.queue_name, durable=True)
 
-    def close(self):
-        self.connection.close()
-        log.info("Connection closed")
+    async def consume(self, app: FastAPI):
+        while True:
+            try:
+                await self.queue.consume(lambda message: self._callback(app, message), no_ack=False)
+                log.info(f"Starting to consume messages from {self.queue_name}")
+                break
+            except (ConnectionClosed, ChannelClosed) as e:
+                log.error(f"Connection closed, retrying... {e}")
+                await asyncio.sleep(5)
+                await self.connect()
 
-    def callback(self, ch, method, properties, body):
-        message = json.loads(body)
-        log.info(f"Received message: {message}")
+    async def _callback(self, app: FastAPI, message: IncomingMessage):
+        async with message.process():
+            try:
+                message_data = json.loads(message.body.decode("utf-8"))
+                log.info(f"Received message: {message_data}")
+                await RatingService.handle_message(app, message_data)
+            except json.JSONDecodeError as e:
+                log.error(
+                    f"Failed to decode message: {message.body.decode('utf-8')} - Error: {e}"
+                )
+
+    async def close(self):
+        if self.connection:
+            await self.connection.close()
+            log.info("Connection closed")
 
 
-def start_consumer(queue_name=settings.QUEUE_NAME):
-    consumer = Consumer(queue_name=queue_name)
-    consumer_thread = threading.Thread(target=consumer.consume)
-    consumer_thread.start()
+async def start_consumer(loop, app: FastAPI) -> Consumer:
+    connection = await connect_robust(
+        host=settings.BROKER_HOST, 
+        port=settings.BROKER_PORT, 
+        loop=loop,
+        heartbeat=settings.BROKER_HEARTBEAT,
+        connection_attempts=settings.BROKER_CONNECTION_ATTEMPTS,
+        connection_timeout=settings.BROKER_CONNECTION_TIMEOUT,
+        attempt_delay=settings.BROKER_ATTEMPT_DELAY,
+    )
+    consumer = Consumer(connection)
+    await consumer.connect()
+    asyncio.create_task(consumer.consume(app))  # Ensure consume runs in the background
     return consumer

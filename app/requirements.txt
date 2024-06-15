@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+debugpy
 ruff
 httpx
 pydantic
@@ -15,4 +16,4 @@ schema
 strawberry-graphql[fastapi]
 pytest-asyncio
 sqlalchemy
-pika
+aio-pika

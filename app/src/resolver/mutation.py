@@ -1,20 +1,24 @@
 import strawberry
+from strawberry.types import Info
+from typing import Annotated, Optional
 
-from service.user_service import UserService
+from service.rating_service import RatingService
 
-from resolver.schema import UserType, UserInput
+from resolver.score_schema import ScoreInput, ScoreType
+
+from utils.logger import logger_config
+
+log = logger_config(__name__)
 
 
 @strawberry.type
 class Mutation:
-    @strawberry.mutation(name="create", description="Create a new user")
-    async def create(self, user_data: UserInput) -> UserType:
-        return await UserService.create(user_data)
-
-    @strawberry.mutation(name="update", description="Update an existing user")
-    async def update(self, user_id: int, user_data: UserInput) -> UserType:
-        return await UserService.update(user_id, user_data)
-
-    @strawberry.mutation(name="delete", description="Delete an existing user")
-    async def delete(self, user_id: int) -> bool:
-        return await UserService.delete(user_id)
+    @strawberry.mutation(name="create_score")
+    async def create_score(
+        self,
+        info: Info,
+        new_score: Annotated[ScoreInput, strawberry.argument(name="new_score")],
+    ) -> Optional[ScoreType]:
+        publisher = info.context["publisher"]
+        log.info(f"Creating score: {new_score}")
+        return await RatingService.create_score(new_score, publisher)

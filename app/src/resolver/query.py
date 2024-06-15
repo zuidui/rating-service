@@ -1,16 +1,16 @@
 import strawberry
+from typing import Annotated, Optional
 
-from service.user_service import UserService
+from resolver.player_rating_schema import PlayerRatingInput, RatingType
 
-from resolver.schema import UserType
+from service.rating_service import RatingService
 
 
 @strawberry.type
 class Query:
-    @strawberry.field(name="get_all", description="Get all users")
-    async def get_all(self) -> list[UserType]:
-        return await UserService.get_all()
-
-    @strawberry.field(name="get_by_id", description="Get user by id")
-    async def get_by_id(self, user_id: int) -> UserType:
-        return await UserService.get_by_id(user_id)
+    @strawberry.field(name="get_player_rating")
+    async def get_player_rating(
+        self,
+        player: Annotated[PlayerRatingInput, strawberry.argument(name="player")],
+    ) -> Optional[RatingType]:
+        return await RatingService.get_player_rating(player)
