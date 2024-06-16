@@ -1,0 +1,122 @@
+[
+    {
+        "player_id": 1,
+        "team_id": 1,
+        "player_name": "Gerald Park",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 2,
+        "team_id": 1,
+        "player_name": "Paul Burns",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 3,
+        "team_id": 1,
+        "player_name": "Danielle Reed",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 4,
+        "team_id": 1,
+        "player_name": "Julia Jones",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 5,
+        "team_id": 1,
+        "player_name": "Michelle Dominguez",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 6,
+        "team_id": 2,
+        "player_name": "Crystal Riley",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 7,
+        "team_id": 2,
+        "player_name": "William Mendez",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 8,
+        "team_id": 2,
+        "player_name": "Courtney Brooks",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 9,
+        "team_id": 2,
+        "player_name": "Joseph Reed",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 10,
+        "team_id": 2,
+        "player_name": "Sharon Tapia",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 11,
+        "team_id": 3,
+        "player_name": "Deanna Madden",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 12,
+        "team_id": 3,
+        "player_name": "Ryan Griffith",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 13,
+        "team_id": 3,
+        "player_name": "Matthew Johnson",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 14,
+        "team_id": 3,
+        "player_name": "Rhonda Brown",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 15,
+        "team_id": 3,
+        "player_name": "Alfred Bishop",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 16,
+        "team_id": 4,
+        "player_name": "Mark Ellis",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 17,
+        "team_id": 4,
+        "player_name": "Cody Ward",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 18,
+        "team_id": 4,
+        "player_name": "Brittany Brown",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 19,
+        "team_id": 4,
+        "player_name": "Lindsey Meyer",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    },
+    {
+        "player_id": 20,
+        "team_id": 4,
+        "player_name": "Dale Williams",
+        "created_at": "2024-06-16T11:30:39.224884+00:00"
+    }
+]

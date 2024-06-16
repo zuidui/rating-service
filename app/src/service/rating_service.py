@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import httpx
 
 from datetime import datetime, timezone
@@ -11,7 +11,11 @@ from model.score_model import Score
 from model.player_rating_model import PlayerRating
 
 from resolver.score_schema import ScoreInput, ScoreType
-from resolver.player_rating_schema import PlayerRatingInput, RatingType
+from resolver.player_rating_schema import (
+    PlayerRatingInput,
+    PlayerRatingOutput,
+    PlayerRatingType,
+)
 
 from events.publisher import Publisher, publish_event
 
@@ -54,7 +58,7 @@ class RatingService:
         event_type = message["event_type"]
         data = message["data"]
         if event_type == "create_player":
-            player_team_id = data["player_team_id"]
+            player_team_id = data["team_id"]
             player_id = data["player_id"]
 
             new_score = ScoreInput(
@@ -63,6 +67,28 @@ class RatingService:
                 player_score=5,
             )
             await RatingService.create_score(new_score, publisher)
+        elif event_type == "create_rating":
+            player_team_id = data["team_id"]
+            player_id = data["player_id"]
+            players_data = await RatingService.get_players_data(player_team_id)
+            query = f"""
+            mutation {{
+                rating_updated (team_data: {{
+                    team_id: {player_team_id},
+                    players: {players_data}
+                }}) {{
+                    team_id
+                    team_name
+                    players {{
+                        player_id
+                        player_average_rating
+                    }}
+                }}
+            }}
+            """
+            payload = {"query": query}
+            log.info(f"Sending GraphQL query: {query}")
+            await RatingService.send_to_api_gateway(payload)
         elif event_type == "create_score":
             player_team_id = data["player_team_id"]
             player_id = data["player_id"]
@@ -73,27 +99,6 @@ class RatingService:
                 score_value=score_value,
             )
             await RatingService.update_rating(score, publisher)
-        elif event_type == "create_rating" or event_type == "update_rating":
-            player_team_id = data["player_team_id"]
-            player_id = data["player_id"]
-            player_score = data["player_average_score"]
-            query = f"""
-            query {{
-                player_rating_info(
-                    player_id: {player_id}, 
-                    player_team_id: {player_team_id},
-                    player_score: {player_score} 
-                ) 
-                {{
-                    player_id
-                    player_team_id
-                    player_average_score
-                }}
-            }}
-            """
-            payload = {"query": query}
-            log.info(f"Sending GraphQL query: {query}")
-            await RatingService.send_to_api_gateway(payload)
         else:
             log.info(f"Event type {event_type} consumed but not handled.")
         return data
@@ -119,9 +124,10 @@ class RatingService:
             created_at=datetime.now(timezone.utc),
         )
 
+        #FIXME - error to be handled new_score.to_dict().player_id
         try:
             if not await RatingService.rating_exists_by_player_id(
-                new_score.player_id, new_score.team_id
+                new_score.to_dict().player_id, new_score.to_dict().team_id
             ):
                 log.info(
                     f"Player rating for player_id: {new_score.player_id} and team_id: {new_score.team_id} does not exist. Creating new player rating."
@@ -135,7 +141,7 @@ class RatingService:
                 )
 
                 rating = (await PlayerRatingRepository.create(new_rating)).to_dict()
-                rating_created = RatingType(
+                rating_created = PlayerRatingType(
                     player_id=rating["player_id"],
                     player_team_id=rating["team_id"],
                     player_average_score=rating["average_score"],
@@ -187,7 +193,7 @@ class RatingService:
     async def update_rating(
         rating_data: PlayerRatingInput,
         publisher: Publisher,
-    ) -> Optional[RatingType]:
+    ) -> Optional[PlayerRatingType]:
         log.info(f"Updating score: {rating_data}")
 
         if not await RatingService.rating_exists_by_player_id(
@@ -206,7 +212,7 @@ class RatingService:
 
             try:
                 rating = (await PlayerRatingRepository.create(new_rating)).to_dict()
-                rating_created = RatingType(
+                rating_created = PlayerRatingType(
                     player_id=rating["player_id"],
                     player_team_id=rating["team_id"],
                     player_average_score=rating["average_score"],
@@ -251,7 +257,7 @@ class RatingService:
             try:
                 rating = (await PlayerRatingRepository.update(new_rating)).to_dict()
 
-                rating_updated = RatingType(
+                rating_updated = PlayerRatingType(
                     player_id=rating["player_id"],
                     player_team_id=rating["team_id"],
                     player_average_score=rating["average_score"],
@@ -275,14 +281,33 @@ class RatingService:
             return rating_updated
 
     @staticmethod
-    async def get_player_rating(player: PlayerRatingInput) -> Optional[RatingType]:
+    async def get_player_rating(
+        player: PlayerRatingInput,
+    ) -> Optional[PlayerRatingType]:
         player_rating = await PlayerRatingRepository.get_rating_by_player_id(
             player.player_id, player.player_team_id
         )
         if player_rating is not None:
-            return RatingType(
+            return PlayerRatingType(
                 player_id=player_rating["player_id"],
                 player_team_id=player_rating["team_id"],
                 player_average_score=player_rating["average_score"],
             )
         return None
+
+    @staticmethod
+    async def get_players_data(team_id: int) -> List[PlayerRatingOutput]:
+        players = await PlayerRatingRepository.get_players_by_team_id(team_id)
+
+        if not players:
+            raise Exception("No players found for team_id: {team_id}")
+
+        players_data = []
+        for player in players:
+            players_data.append(
+                PlayerRatingOutput(
+                    player_id=player.to_dict().player_id,
+                    player_average_score=player.to_dict().average_score,
+                )
+            )
+        return players_data

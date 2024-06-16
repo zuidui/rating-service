@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.future import select as sql_select
 from model.player_rating_model import PlayerRating
 from data.session import db
@@ -31,6 +31,16 @@ class PlayerRatingRepository:
             if player_rating:
                 log.info(f"Player rating found in repository: {player_rating}")
         return player_rating
+
+    @staticmethod
+    async def get_players_by_team_id(team_id: int) -> List[PlayerRating]:
+        async with db.get_db() as session:
+            stmt = sql_select(PlayerRating).where(PlayerRating.team_id == team_id)
+            result = await session.execute(stmt)
+            player_ratings = result.scalars().all()
+            if player_ratings:
+                log.info(f"Players ratings found in repository: {player_ratings}")
+        return List(player_ratings)
 
     @staticmethod
     async def update(player_rating: PlayerRating) -> PlayerRating:

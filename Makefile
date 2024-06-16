@@ -52,7 +52,7 @@ start-db:  ## Start the database.
 .PHONY: clean
 clean:  ## Clean the app.
 	@echo "Cleaning $(IMAGE_NAME) docker image."
-	docker-compose -f ./app/docker-compose.yml down --rmi all --volumes
+	docker-compose -f ./app/docker-compose.yml down
 
 .PHONY: build
 build:  ## Build the app.

@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime
+import json
+import os
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -9,6 +11,8 @@ from model.player_rating_model import PlayerRating
 from utils.logger import logger_config
 
 log = logger_config(__name__)
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
 
 
 async def insert_sample_data(session: AsyncSession, model, sample_data):
@@ -21,64 +25,18 @@ async def insert_sample_data(session: AsyncSession, model, sample_data):
 
 
 async def insert_sample_scores(session: AsyncSession):
-    sample_scores = [
-        Score(
-            player_id=1,
-            team_id=1,
-            score=10,
-            created_at=datetime.now(timezone.utc),
-        ),
-        Score(
-            player_id=1,
-            team_id=1,
-            score=9,
-            created_at=datetime.now(timezone.utc),
-        ),
-        Score(
-            player_id=1,
-            team_id=1,
-            score=8,
-            created_at=datetime.now(timezone.utc),
-        ),
-        Score(
-            player_id=2,
-            team_id=1,
-            score=7,
-            created_at=datetime.now(timezone.utc),
-        ),
-        Score(
-            player_id=2,
-            team_id=1,
-            score=6,
-            created_at=datetime.now(timezone.utc),
-        ),
-        Score(
-            player_id=2,
-            team_id=1,
-            score=5,
-            created_at=datetime.now(timezone.utc),
-        ),
-    ]
-
-    await insert_sample_data(session, Score, sample_scores)
+    with open(os.path.join(current_directory, "scores.json"), "r") as f:
+        sample_scores = json.load(f)
+    for score in sample_scores:
+        score['created_at'] = datetime.fromisoformat(score['created_at'])        
+    scores = [Score(**score) for score in sample_scores]
+    await insert_sample_data(session, Score, scores)
 
 
 async def insert_sample_player_ratings(session: AsyncSession):
-    sample_player_ratings = [
-        PlayerRating(
-            player_id=1,
-            team_id=1,
-            average_score=9,
-            total_of_scores=3,
-            last_updated=datetime.now(timezone.utc),
-        ),
-        PlayerRating(
-            player_id=2,
-            team_id=1,
-            average_score=6,
-            total_of_scores=3,
-            last_updated=datetime.now(timezone.utc),
-        ),
-    ]
-
-    await insert_sample_data(session, PlayerRating, sample_player_ratings)
+    with open(os.path.join(current_directory, "player_ratings.json"), "r") as f:
+        sample_player_ratings = json.load(f)
+    for rating in sample_player_ratings:
+        rating['last_updated'] = datetime.fromisoformat(rating['last_updated'])
+    player_ratings = [PlayerRating(**rating) for rating in sample_player_ratings]
+    await insert_sample_data(session, PlayerRating, player_ratings)
