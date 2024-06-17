@@ -1,0 +1,142 @@
+[
+    {
+        "player_id": 1,
+        "team_id": 1,
+        "average_score": 6.333333333333333,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 2,
+        "team_id": 1,
+        "average_score": 5.333333333333333,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 3,
+        "team_id": 1,
+        "average_score": 6.0,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 4,
+        "team_id": 1,
+        "average_score": 6.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 5,
+        "team_id": 1,
+        "average_score": 3.6666666666666665,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 6,
+        "team_id": 2,
+        "average_score": 5.0,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 7,
+        "team_id": 2,
+        "average_score": 7.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 8,
+        "team_id": 2,
+        "average_score": 3.3333333333333335,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 9,
+        "team_id": 2,
+        "average_score": 6.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 10,
+        "team_id": 2,
+        "average_score": 4.333333333333333,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 11,
+        "team_id": 3,
+        "average_score": 6.333333333333333,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 12,
+        "team_id": 3,
+        "average_score": 5.0,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 13,
+        "team_id": 3,
+        "average_score": 4.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 14,
+        "team_id": 3,
+        "average_score": 7.0,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 15,
+        "team_id": 3,
+        "average_score": 5.333333333333333,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 16,
+        "team_id": 4,
+        "average_score": 5.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 17,
+        "team_id": 4,
+        "average_score": 7.333333333333333,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 18,
+        "team_id": 4,
+        "average_score": 5.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 19,
+        "team_id": 4,
+        "average_score": 5.666666666666667,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    },
+    {
+        "player_id": 20,
+        "team_id": 4,
+        "average_score": 5.0,
+        "total_of_scores": 3,
+        "last_updated": "2024-06-16T11:37:43.955009+00:00"
+    }
+]

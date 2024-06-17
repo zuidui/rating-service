@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from data.sample import insert_sample_scores, insert_sample_player_ratings
 from data.session import db
 
-from events.consumer import start_consumer
+from events.consumer import Consumer, start_consumer
 from events.publisher import Publisher, start_publisher
 
 from routes.graphql_router import graphql_app, graphql_router
@@ -21,18 +21,19 @@ from utils.config import get_settings
 log = logger_config(__name__)
 settings = get_settings()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
-    consumer = await start_consumer(loop, app)
-    publisher = await start_publisher(loop)
+    consumer: Consumer = await start_consumer(loop, app)
+    publisher: Publisher = await start_publisher(loop)
+    app.state.consumer = consumer
+    app.state.publisher = publisher
     try:
         await db.create_database()
         async with db.get_db() as session:
             await insert_sample_player_ratings(session)
             await insert_sample_scores(session)
-        app.state.consumer = consumer
-        app.state.publisher = publisher
         yield
     finally:
         await consumer.close()
@@ -59,19 +60,24 @@ def init_app():
         f"Service API: http://{settings.IMAGE_NAME}:{settings.APP_PORT}{settings.API_PREFIX}/graphql"
     )
     log.info(
+        f"Service documentation: http://{settings.IMAGE_NAME}:{settings.APP_PORT}{settings.DOC_URL}"
+    )
+    log.info(
         f"Service health-check: http://{settings.IMAGE_NAME}:{settings.APP_PORT}/health"
     )
     log.info(f"Service schema: http://{settings.IMAGE_NAME}:{settings.APP_PORT}/schema")
     log.info(f"Database URL: {settings.SQLALCHEMY_DATABASE_URI}")
     log.info(f"API Gateway URL: {settings.API_GATEWAY_URL}")
-    log.info(f"Broker: {settings.BROKER_URL}/{settings.QUEUE_NAME}")
+    log.info(f"Broker: {settings.BROKER_URL}")
+    log.info(f"Queue name: {settings.QUEUE_NAME}")
+    log.info(f"Exchange name: {settings.EXCHANGE_NAME}")
 
     app = FastAPI(
         title=settings.IMAGE_NAME,
         description=settings.APP_DESCRIPTION,
         version=settings.IMAGE_VERSION,
-        openapi_url=None,
-        docs_url=None,
+        openapi_url=f"{settings.API_PREFIX}/openapi.json",
+        docs_url=settings.DOC_URL,
         lifespan=lifespan,
     )
 

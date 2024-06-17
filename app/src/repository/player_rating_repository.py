@@ -33,6 +33,16 @@ class PlayerRatingRepository:
         return player_rating
 
     @staticmethod
+    async def get_players_by_team_id(team_id: int) -> list[PlayerRating]:
+        async with db.get_db() as session:
+            stmt = sql_select(PlayerRating).where(PlayerRating.team_id == team_id)
+            result = await session.execute(stmt)
+            player_ratings = result.scalars().all()
+            if player_ratings:
+                log.info(f"Players ratings found in repository: {player_ratings}")
+        return list(player_ratings)
+
+    @staticmethod
     async def update(player_rating: PlayerRating) -> PlayerRating:
         async with db.get_db() as session:
             async with db.commit_rollback(session):
