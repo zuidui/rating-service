@@ -29,29 +29,6 @@ settings = get_settings()
 
 class RatingService:
     @staticmethod
-    async def send_to_api_gateway(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        try:
-            log.debug(
-                f"Sending request to {settings.API_GATEWAY_URL} with payload: {payload}"
-            )
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{settings.API_GATEWAY_URL}", json=payload
-                )
-                response.raise_for_status()
-                log.debug(f"Response received: {response.json()}")
-                return response.json().get("data")
-        except httpx.HTTPStatusError as e:
-            log.error(
-                f"Request failed with status {e.response.status_code}: {e.response.text}"
-            )
-        except httpx.RequestError as e:
-            log.error(f"An error occurred while requesting {e.request.url!r}.")
-        except Exception as e:
-            log.error(f"Unexpected error: {e}")
-        return None
-
-    @staticmethod
     async def handle_message(
         app: FastAPI, message: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
