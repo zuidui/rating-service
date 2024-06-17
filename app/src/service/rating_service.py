@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from typing import Any, Dict, Optional
-import httpx
 
 from datetime import datetime, timezone
 
