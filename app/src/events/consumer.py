@@ -34,7 +34,9 @@ class Consumer:
         self.queue = await self.channel.declare_queue(exclusive=True, durable=True)
         await self.queue.bind(self.exchange)
         if not self.queue:
-            raise ConnectionError(f"Failed to declare and bind queue to {self.exchange_name}")
+            raise ConnectionError(
+                f"Failed to declare and bind queue to {self.exchange_name}"
+            )
 
     async def consume(self, app: FastAPI):
         while True:

@@ -35,8 +35,9 @@ class Publisher:
         log.info(f"Connected to exchange {self.exchange_name}")
 
     async def _declare_exchange(self):
-        self.exchange = await self.channel.declare_exchange(self.exchange_name, ExchangeType.FANOUT, durable=True)
-
+        self.exchange = await self.channel.declare_exchange(
+            self.exchange_name, ExchangeType.FANOUT, durable=True
+        )
 
     async def publish(self, message: Dict[str, Any]):
         if not self.exchange:
@@ -46,7 +47,6 @@ class Publisher:
             routing_key="",
         )
         log.info(f"Published message to exchange {self.exchange_name}: {message}")
-
 
     async def close(self):
         if self.connection:

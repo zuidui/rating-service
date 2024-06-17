@@ -28,7 +28,7 @@ async def insert_sample_scores(session: AsyncSession):
     with open(os.path.join(current_directory, "scores.json"), "r") as f:
         sample_scores = json.load(f)
     for score in sample_scores:
-        score['created_at'] = datetime.fromisoformat(score['created_at'])        
+        score["created_at"] = datetime.fromisoformat(score["created_at"])
     scores = [Score(**score) for score in sample_scores]
     await insert_sample_data(session, Score, scores)
 
@@ -37,6 +37,6 @@ async def insert_sample_player_ratings(session: AsyncSession):
     with open(os.path.join(current_directory, "player_ratings.json"), "r") as f:
         sample_player_ratings = json.load(f)
     for rating in sample_player_ratings:
-        rating['last_updated'] = datetime.fromisoformat(rating['last_updated'])
+        rating["last_updated"] = datetime.fromisoformat(rating["last_updated"])
     player_ratings = [PlayerRating(**rating) for rating in sample_player_ratings]
     await insert_sample_data(session, PlayerRating, player_ratings)
