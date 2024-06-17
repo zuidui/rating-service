@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     APP_HOST: str
     APP_DESCRIPTION: str
     API_PREFIX: str
+    DOC_URL: str
     DEPENDENCIES: str
     DB_HOST: str
     DB_PORT: str
@@ -33,8 +34,9 @@ class Settings(BaseSettings):
     BROKER_HEARTBEAT: int
     BROKER_CONNECTION_ATTEMPTS: int
     BROKER_CONNECTION_TIMEOUT: int
-    BROKER_ATTEMPT_DELAY: int    
+    BROKER_ATTEMPT_DELAY: int
     QUEUE_NAME: str
+    EXCHANGE_NAME: str
 
     @property
     def SQLALCHEMY_DATABASE_URI(self):

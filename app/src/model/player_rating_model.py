@@ -8,7 +8,7 @@ from data.session import Base
 class PlayerRating(Base):
     __tablename__ = "player_ratings"
 
-    player_id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(Integer, primary_key=True, autoincrement=True)
     team_id = Column(Integer)
     average_score = Column(Float)
     total_of_scores = Column(Integer)
