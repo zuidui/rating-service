@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from repository.player_rating_repository import PlayerRatingRepository
 from repository.score_repository import ScoreRepository
 
-from model.score_model import Score
-from model.player_rating_model import PlayerRating
+from models.score_model import Score
+from models.player_rating_model import PlayerRating
 
 from resolver.score_schema import ScoreInput, ScoreType
 from resolver.player_rating_schema import (
