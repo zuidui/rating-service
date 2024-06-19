@@ -5,8 +5,8 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from model.score_model import Score
-from model.player_rating_model import PlayerRating
+from models.score_model import Score
+from models.player_rating_model import PlayerRating
 
 from utils.logger import logger_config
 

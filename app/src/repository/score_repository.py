@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.future import select as sql_select
-from model.score_model import Score
+from models.score_model import Score
 from data.session import db
 from utils.logger import logger_config
 

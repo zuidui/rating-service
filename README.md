@@ -1,59 +1,102 @@
-# Users microservice
+# Rating service
+
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/zuidui/rating-service)
+![Docker Hub Image Version (latest by date)](https://img.shields.io/docker/v/zuidui/rating-service?label=docker%20hub)
+![GitHub](https://img.shields.io/github/license/zuidui/rating-service)
 
 ## Description
 
-Proof of concept for the Master's Thesis. Main objectives are:
+This project is a simple service that provides information scores created to teams in the application, computes the average score of the team, and provides a rating based on the average score. Also publish the rating to a RabbitMQ queue.
 
-- Create a simple web application with FastAPI
-- Follow best practices to structure the application
-- Demo to authenticate users, store data in a database and retrieve it
-- Apply TDD to the development of the application. Unit tests and integration tests
-- Use Redis to store the session data and cache
-- Use Docker to deploy the application
-- SQLModel to interact with the database
-- Use GitHub Actions to automate the CI/CD pipeline
+## Prerequisites
 
-## Requirements
+Ensure you have the following installed on your system:
 
-- You only need to have [Docker](https://www.docker.com/) installed.
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-## Folder structure
+## Project Structure
 
-- There is a `tests` folder with the tests files.
-  - In order to add new tests please follow the [pytest](https://docs.pytest.org/en/7.1.x/getting-started.html) recommendations.
-- The production code goes inside the `app` folder.
-- Inside the `scripts` folder you can find the git hooks files.
+- `.github/`: Contains GitHub Actions workflows.
+- `.vscode/`: Contains Visual Studio Code configurations for debugging.
+- `.devcontainer/`: Contains configurations for the development container.
+- `app/`
+  - `wait-for-it.sh`: Helper script to wait for services to be ready.
+  - `docker-compose.yml`: Defines the services, their configurations, and networking.
+  - `Dockerfile`: Defines the Docker image for the API Gateway service.
+  - `requirements.txt`: Lists the Python dependencies for the project.
+  - `src/`: Contains the source code for the application.
+    - `main.py`: Entry point for the FastAPI application.
+    - `data/`: Database connection and session management.
+    - `events/`: Event handling modules.
+    - `exceptions/`: Custom exception classes.
+    - `models/`: Database models.
+    - `resolver/`: GraphQL resolvers.
+    - `routes/`: FastAPI route definitions.
+    - `service/`: Service layer for business logic.
+    - `utils/`: Utility functions and configurations.
+  - `tests/`: Contains the test files.
+    - `acceptance/`: Acceptance tests.
+    - `integration/`: Integration tests.
+    - `unit/`: Unit tests.
+- `chart/`
+  - Helm charts for Kubernetes deployment.
+- `CRD/`
+  - Custom Resource Definitions for Kubernetes.
+- `scripts/`: Contains helper scripts.
+- `.env`: Environment variables used by Docker Compose and the application.
+- `Makefile`: Provides a set of commands to automate common tasks.
+- `LICENSE`: License file for the project.
+- `README.md`: This file.
 
-## Project commands
+## Project Commands
 
 The project uses [Makefiles](https://www.gnu.org/software/make/manual/html_node/Introduction.html) to run the most common tasks:
 
-- `help` : Shows this help.
-- `local-setup`: Sets up the local environment (e.g. install git hooks).
-- `build`: Builds the app.
+- `help`: Shows this help.
+- `todo`: Shows the TODOs in the code.
+- `show-env`: Shows the environment variables.
+- `set-up`: Prepares the environment for development.
 - `clean`: Cleans the app.
+- `build`: Builds the app.
 - `run`: Runs the app.
-- `install package=XXX`: Installs the package XXX in the app, ex: `make install package=requests`.
-- `reformat`: Formats the code.
-- `check-typing`: Runs a static analyzer over the code in order to find issues.
-- `check-style`: Checks the code style.
 - `test`: Run all the tests.
+- `test-unit`: Run the unit tests.
+- `test-integration`: Run the integration tests.
+- `test-acceptance`: Run the acceptance tests.
+- `pre-commit`: Runs the pre-commit checks.
+- `reformat`: Formats the code.
+- `check-typing`: Runs a static analyzer over the code to find issues.
+- `check-style`: Checks the code style.
+- `publish-image-pre`: Publishes the image to the pre-production registry.
+- `publish-image-pro`: Publishes the image to the production registry.
 
-## Packages
+## Services
 
-This project uses [Poetry](https://python-poetry.org) as the package manager.
+**API Gateway**: `http://${IMAGE_NAME}:${APP_PORT}`
 
-To run poetry need the `pyproject.toml` created first and then run `make poetry-init` to install the dependencies.
+**Sanity Check**: `http://${IMAGE_NAME}:${APP_PORT}/health`
 
-### Testing
+**Schema Definition**: `http://${IMAGE_NAME}:${APP_PORT}/schema`
 
-- [pytest](https://docs.pytest.org/en/7.1.x/contents.html): Testing runner.
-- [pytest-xdist](https://github.com/pytest-dev/pytest-xdist): Pytest plugin to run the tests in parallel.
-- [doublex](https://github.com/davidvilla/python-doublex): Powerful test doubles framework for Python.
-- [expects](https://expects.readthedocs.io/en/stable/): An expressive and extensible TDD/BDD assertion library for Python..
-- [doublex-expects](https://github.com/jaimegildesagredo/doublex-expects): A matchers library for the Expects assertion librar.
+**API Documentation**: `http://${IMAGE_NAME}:${APP_PORT}/{DOC_URL}`
 
-### Code style
+**GraphQL Playground**: `http://${IMAGE_NAME}:${APP_PORT}/api/{API_PREFIX}/graphql`
 
-- [mypy](https://mypy.readthedocs.io/en/stable/): A static type checker.
-- [ruff](https://github.com/astral-sh/ruff): An extremely fast Python linter, written in Rust.
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Commit your changes (`git commit -am 'Add new feature'`).
+4. Push to the branch (`git push origin feature-branch`).
+5. Open a Pull Request.
+
+## License
+
+This project is licensed under the Apache 2.0 License. See the LICENSE file for details.
+
+## Contact
+
+For any inquiries or issues, please open an issue on the [GitHub repository](https://github.com/zuidui/rating-service) or contact any of the maintainers.
