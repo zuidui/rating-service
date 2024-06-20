@@ -15,6 +15,8 @@ from resolver.player_rating_schema import (
     PlayerRatingList,
     PlayerRatingOutput,
     PlayerRatingType,
+    TeamRatingInput,
+    TeamRatingOutput,
 )
 
 from events.publisher import Publisher, publish_event
@@ -44,16 +46,17 @@ class RatingService:
                 player_score=5,
             )
             await RatingService.create_score(new_score, publisher)
-        # elif event_type == "create_score":
-        #    player_team_id = data["player_team_id"]
-        #    player_id = data["player_id"]
-        #    score_value = data["player_score"]
-        #    score = Score(
-        #        player_id=player_id,
-        #        player_team_id=player_team_id,
-        #        score_value=score_value,
-        #    )
-        #    await RatingService.update_rating(score, publisher)
+        elif event_type == "score_created":
+            player_id = data["player_id"]
+            team_id = data["team_id"]
+            player_score = data["score"]
+
+            new_rating = PlayerRatingInput(
+                player_id=player_id,
+                player_team_id=team_id,
+                player_score=player_score,
+            )
+            await RatingService.update_rating(new_rating, publisher)
         else:
             log.info(f"Event type {event_type} consumed but not handled.")
         return data
@@ -163,3 +166,61 @@ class RatingService:
             ]
             return PlayerRatingList(team_id=team_id, players_data=players_data)
         raise Exception("No players found")
+
+    @staticmethod
+    async def rate_players(
+        publisher: Publisher, team_rating: TeamRatingInput
+    ) -> Optional[TeamRatingOutput]:
+        team_id = team_rating.team_id
+        players_data = team_rating.players_data
+        for player in players_data:
+            player_id = player.player_id
+            player_score = player.player_score
+            player_rating = ScoreInput(
+                player_id=player_id,
+                team_id=team_id,
+                player_score=player_score,
+            )
+            await RatingService.create_score(player_rating, publisher)
+
+        log.info(f"Publishing event: rating_updated for team: {{'team_id': {team_id}}}")
+        await publish_event(
+            publisher,
+            "rating_updated",
+            {
+                "team_id": team_id,
+            },
+        )
+        return TeamRatingOutput(team_id=team_id)
+
+    @staticmethod
+    async def update_rating(
+        new_rating: PlayerRatingInput, publisher: Publisher
+    ) -> Optional[PlayerRatingType]:
+        player_id = new_rating.player_id
+        team_id = new_rating.player_team_id
+        player_score = new_rating.player_score
+
+        player_rating = await PlayerRatingRepository.get_rating_by_player_id(
+            player_id, team_id
+        )
+        if player_rating is not None:
+            player_rating_dict = player_rating.to_dict()
+            total_of_scores = player_rating_dict["total_of_scores"]
+            average_score = player_rating_dict["average_score"]
+            new_total_of_scores = total_of_scores + 1
+            new_average_score = (
+                (average_score * total_of_scores) + player_score
+            ) / new_total_of_scores
+            player_rating.average_score = new_average_score
+            player_rating.total_of_scores = new_total_of_scores
+            # player_rating.last_updated = datetime.now(timezone.utc)
+            await PlayerRatingRepository.update(player_rating)
+            rating_updated = PlayerRatingType(
+                player_id=int(player_rating.player_id),
+                player_team_id=int(player_rating.team_id),
+                player_average_rating=float(player_rating.average_score),
+            )
+
+            return rating_updated
+        raise Exception("Player rating not found")

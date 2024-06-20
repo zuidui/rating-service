@@ -26,3 +26,20 @@ class PlayerRatingOutput:
 class PlayerRatingList:
     team_id: int = strawberry.field(name="team_id")
     players_data: List[PlayerRatingOutput] = strawberry.field(name="players_data")
+
+
+@strawberry.input
+class PlayerRating:
+    player_id: int = strawberry.field(name="player_id")
+    player_score: int = strawberry.field(name="player_score")
+
+
+@strawberry.input
+class TeamRatingInput:
+    team_id: int = strawberry.field(name="team_id")
+    players_data: List[PlayerRating] = strawberry.field(name="players_data")
+
+
+@strawberry.type
+class TeamRatingOutput:
+    team_id: int = strawberry.field(name="team_id")
